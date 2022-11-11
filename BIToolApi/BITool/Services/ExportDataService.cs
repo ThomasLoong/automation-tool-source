@@ -1,4 +1,5 @@
 ﻿using BITool.Enums;
+using BITool.Helpers;
 using BITool.Models;
 using Dapper;
 using Microsoft.AspNetCore.Authorization;
@@ -202,8 +203,24 @@ namespace BITool.Services
                     using var package = new ExcelPackage();
                     var sheet = package.Workbook.Worksheets.Add($"Page {i + 1}");
                     using var rdr = cmd.ExecuteReader();
-                    //sheet.Cells[1, 1, itemCount, 1].Style.Numberformat.Format = "0";
-                    sheet.Cells[1, 1, itemCount, 1].LoadFromDataReader(rdr, false);
+                    DataTable dtCustomMobile = dbHelper.executeQueryDataTable(conn, "SELECT mobile_no FROM custom_mobile WHERE status = 1", new Dictionary<string, string>());
+                //sheet.Cells[1, 1, itemCount, 1].Style.Numberformat.Format = "0";
+                    if (dtCustomMobile.Rows.Count > 0)
+                    {
+                        for (int x = 1; x <= dtCustomMobile.Rows.Count; x++)
+                        {
+                            sheet.Cells[x, 1, itemCount, 1].Value = dtCustomMobile.Rows[x]["mobile_no"];
+                            sheet.Cells[x, 2, itemCount, 1].Value = "";
+
+                        }
+                        sheet.Cells[dtCustomMobile.Rows.Count + 1, 1, itemCount, 1].LoadFromDataReader(rdr, false);
+                    }
+                    else
+                    {
+                        sheet.Cells[1, 1, itemCount, 1].LoadFromDataReader(rdr, false);
+                        sheet.Cells[1, 2, itemCount, 1].Value = "";
+                    }
+                
                     result.Add(await fileService.SaveAndGetFullUrl(package.GetAsByteArray(), $"{nowStr}-customer-page-{i + 1}.xlsx", folder: folderName));
                 }
                 if (input.IsRemoveTaggedCampaign && input.AssignedCampaignID !=null)

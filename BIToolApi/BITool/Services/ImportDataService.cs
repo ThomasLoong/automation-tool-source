@@ -48,7 +48,7 @@ namespace BITool.Services
                 if (string.IsNullOrEmpty(input))
                     return null;
 
-                if (input.Length < 11)
+                if (input.Length != 11) //edited by Thomas on 20221111
                     return null;
 
                 if (!Valid_First_Phone_Characters.Contains(input.Substring(0, 3)))
