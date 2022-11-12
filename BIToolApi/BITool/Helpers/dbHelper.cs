@@ -11,17 +11,21 @@ namespace BITool.Helpers
         }
 
         public static DataTable executeQueryDataTable (MySqlConnection conn, string sql, Dictionary<string, string>param) {
-            DataTable dtResult = null;
-            DataSet dsResult = null;
+            DataTable dtResult = new DataTable();
+            DataSet dsResult = new DataSet();
             MySqlCommand command = null;
             MySqlDataAdapter daResult = null;
             try
             {
+                if (conn.State!= ConnectionState.Open)
+                {
+                    conn.Open();
+                }
                 if (conn.State== ConnectionState.Open)
                 {
-                    dtResult = new DataTable();
-                    command = new MySqlCommand(sql, conn);
+                    command = conn.CreateCommand();
                     command.CommandType = CommandType.Text;
+                    command.CommandText = sql; 
                     if (param.Count > 0)
                     {
                         foreach(KeyValuePair<string, string> kvp in param)
@@ -30,8 +34,11 @@ namespace BITool.Helpers
                         }
                     }
                     daResult = new MySqlDataAdapter(command);
-                    daResult.Fill(dsResult);
-                    dtResult = dsResult.Tables[0];
+                    if (daResult != null)
+                    {
+                        daResult.Fill(dsResult);
+                        dtResult = dsResult.Tables[0];
+                    }
 
                 }
             }
@@ -41,9 +48,13 @@ namespace BITool.Helpers
             }
             finally
             {
-                dsResult.Dispose();
-                command.Dispose();
-                daResult.Dispose();
+                dsResult = null;
+                command = null;
+                daResult = null;
+                if (conn.State == ConnectionState.Open)
+                {
+                    conn.Close();
+                }
             }
             return dtResult;
         }
