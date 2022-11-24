@@ -1,4 +1,5 @@
 ﻿using BITool.Enums;
+using BITool.Helpers;
 using BITool.Models;
 using Dapper;
 using Microsoft.AspNetCore.Authorization;
@@ -187,6 +188,7 @@ namespace BITool.Services
                 var packageCount = (totalRows - 1) / maxSheetCount + 1;
                 var result = new List<string>();
                 using var conn = new MySqlConnection(sqlConnectionStr);
+                using var conn2 = new MySqlConnection(sqlConnectionStr);
                 conn.Open();
                 Console.WriteLine($"AssignedCampaignID: {input.AssignedCampaignID}");
                 Console.WriteLine($"IsRemoveTaggedCampaign: {input.IsRemoveTaggedCampaign}");
@@ -199,11 +201,31 @@ namespace BITool.Services
 
                     cmd.Parameters["@exportOffset"].Value = i * maxSheetCount;
                     cmd.Parameters["@exportLimit"].Value = itemCount;
+                    ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
                     using var package = new ExcelPackage();
                     var sheet = package.Workbook.Worksheets.Add($"Page {i + 1}");
                     using var rdr = cmd.ExecuteReader();
-                    //sheet.Cells[1, 1, itemCount, 1].Style.Numberformat.Format = "0";
-                    sheet.Cells[1, 1, itemCount, 1].LoadFromDataReader(rdr, false);
+                    DataTable dtCustomMobile = dbHelper.executeQueryDataTable(conn2, "SELECT mobile_no FROM custom_mobile WHERE status = 1;", new Dictionary<string, string>());
+                //sheet.Cells[1, 1, itemCount, 1].Style.Numberformat.Format = "0";
+                    if (dtCustomMobile.Rows.Count > 0)
+                    {
+                        sheet.Cells[1, 1].Value = "Mobile No";
+                        sheet.Cells[1, 2].Value = "Message";
+                        for (int x = 0; x < dtCustomMobile.Rows.Count; x++)
+                        {
+                            sheet.Cells[x+2, 1 ].Value = dtCustomMobile.Rows[x]["mobile_no"];
+                            sheet.Cells[x+2, 2 ].Value = "";
+
+                        }
+                        sheet.Cells[dtCustomMobile.Rows.Count + 2, 1, itemCount, 1].LoadFromDataReader(rdr, false);
+                    }
+                    else
+                    {
+                        sheet.Cells[1, 1].Value = "Mobile No";
+                        sheet.Cells[1, 2].Value = "Message";
+                        sheet.Cells[2, 1, itemCount, 1].LoadFromDataReader(rdr, false);
+                    }
+                
                     result.Add(await fileService.SaveAndGetFullUrl(package.GetAsByteArray(), $"{nowStr}-customer-page-{i + 1}.xlsx", folder: folderName));
                 }
                 if (input.IsRemoveTaggedCampaign && input.AssignedCampaignID !=null)
