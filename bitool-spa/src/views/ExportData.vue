@@ -387,7 +387,7 @@
             label="Download result"
             class="mr-3"
             type="is-primary"
-            @click="downloadCustomerList"
+            @click="downloadCustomerList(false)"
             :disabled="isDisableDownload"
             :loading="isLoadingDownload"
           />
